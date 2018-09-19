@@ -9,9 +9,7 @@
 #include <stdlib.h>
 
 
-
 int main() {
-
     rlimit rilimit{};
     rilimit.rlim_cur = 600;
     rilimit.rlim_max = 600;
@@ -32,30 +30,32 @@ int main() {
         printf("a1jobs[%d]: ", pid);
 
         // get the current command line
-        std::getline(std::cin >> std::ws,cmd);
+        // todo: weird behavoir with whitespace
+        std::getline(std::cin >> std::ws, cmd);
 
         // parse the command into space separated tokens
         std::istringstream iss(cmd);
         std::vector<std::string> tokens{std::istream_iterator<std::string>{iss},
                                         std::istream_iterator<std::string>{}};
-        if (tokens.at(0) == "list"){
-
+        if (tokens.empty()){
+            std::cout << "ERROR: Missing command" << std::endl;
+        } else if (tokens.at(0) == "list"){
            // TODO
         } else if (tokens.at(0) == "run"){
             int pid = fork();
             if (pid==0) {
                 switch(tokens.size()){
                     case 2:
-                        execl(tokens.at(1).c_str(), (char *) 0);
+                        execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), (char *) 0);
                         break;
                     case 3:
-                        execl(tokens.at(1).c_str(), tokens.at(2).c_str(),  (char *) 0);
+                        execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(),  (char *) 0);
                         break;
                     case 4:
-                        execl(tokens.at(1).c_str(), tokens.at(2).c_str(), tokens.at(3).c_str(), (char *) 0);
+                        execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(), tokens.at(3).c_str(), (char *) 0);
                         break;
                     case 5:
-                        execl(tokens.at(1).c_str(), tokens.at(2).c_str(), tokens.at(3).c_str(), tokens.at(4).c_str(), (char *) 0);
+                        execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(), tokens.at(3).c_str(), tokens.at(4).c_str(), (char *) 0);
                         break;
                     default:
                         std::cout << "ERROR: Too many args for run" << std::endl;
@@ -63,7 +63,7 @@ int main() {
                 }
                 return 0;
             }
-            // TODO
+            // TODO:
         } else if (tokens.at(0) == "suspend"){
             int jobNo = std::stoi(tokens.at(1), nullptr, 100);
             kill(jobNo, SIGSTOP);
@@ -73,16 +73,15 @@ int main() {
         } else if (tokens.at(0) == "terminate"){
             int jobNo = std::stoi(tokens.at(1), nullptr, 100);
             kill(jobNo, SIGKILL);
+            // TODO:
         } else if (tokens.at(0) == "exit"){
             break;
         } else if (tokens.at(0) == "quit"){
             // TODO:
             break;
         } else {
-            std::cout << "ERROR: Invalid command" << std::endl;
+            std::cout << "ERROR: Invalid command: "+tokens.at(1) << std::endl;
         }
-
-
     }
 
     return 0;
