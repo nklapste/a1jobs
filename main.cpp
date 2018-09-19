@@ -9,7 +9,12 @@
 #include <stdlib.h>
 #include <tuple>
 
-typedef std::vector< std::tuple<int, pid_t, std::string> > jobs_list;
+
+static const int MAXJOBS = 32;
+
+
+typedef std::vector<std::tuple<int, pid_t, std::string> > jobs_list;
+
 
 int main() {
     rlimit rilimit{};
@@ -29,77 +34,87 @@ int main() {
     pid_t pid = getpid();
     std::cout << pid << std::endl;
 
-    for (;;){
+    // main command event loop
+    for (;;) {
         std::string cmd;
         printf("a1jobs[%d]: ", pid);
 
         // get the current command line
-        // todo: weird behavoir with whitespace
+        // todo: weird behavior with whitespace
         std::getline(std::cin >> std::ws, cmd);
 
         // parse the command into space separated tokens
         std::istringstream iss(cmd);
         std::vector<std::string> tokens{std::istream_iterator<std::string>{iss},
                                         std::istream_iterator<std::string>{}};
-        if (tokens.empty()){
+        if (tokens.empty()) {
             std::cout << "ERROR: Missing command" << std::endl;
-        } else if (tokens.at(0) == "list"){
-           // TODO
-        } else if (tokens.at(0) == "run"){
-            pid_t c_pid = fork();
-            errno = 0;
-            if (c_pid==0) {
-                switch(tokens.size()){
-                    case 2:
-                        execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), (char *) 0);
-                        break;
-                    case 3:
-                        execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(),  (char *) 0);
-                        break;
-                    case 4:
-                        execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(), tokens.at(3).c_str(), (char *) 0);
-                        break;
-                    case 5:
-                        execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(), tokens.at(3).c_str(), tokens.at(4).c_str(), (char *) 0);
-                        break;
-                    default:
-                        std::cout << "ERROR: Too many args for run" << std::endl;
-                        break;
-                }
-                if (errno){
-                    std::cout << "ERROR: Running command" << std::endl;
-                } else {
-                    // concat the cmd vector into a single string
-                    std::ostringstream oss;
-                    std::copy(tokens.begin()+1, tokens.end()-1,
-                              std::ostream_iterator<std::string>(oss, ","));
-                    oss << tokens.back();
-                    std::cout << oss.str() << std::endl;
+        } else if (tokens.at(0) == "list") {
+            // TODO
+        } else if (tokens.at(0) == "run") {
+            if (job_idx < MAXJOBS) {
+                pid_t c_pid = fork();
+                errno = 0;
 
-                    // append the job to the jobs list
-                    jobs.push_back(std::make_tuple(job_idx, c_pid, oss.str()));
-                    job_idx++;
+                if (c_pid == 0) {
+                    switch (tokens.size()) {
+                        case 2:
+                            execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), (char *) 0);
+                            break;
+                        case 3:
+                            execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(), (char *) 0);
+                            break;
+                        case 4:
+                            execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(),
+                                   tokens.at(3).c_str(), (char *) 0);
+                            break;
+                        case 5:
+                            execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(),
+                                   tokens.at(3).c_str(), tokens.at(4).c_str(), (char *) 0);
+                            break;
+                        default:
+                            std::cout << "ERROR: Too many args for run" << std::endl;
+                            break;
+                    }
+                    if (errno) {
+                        std::cout << "ERROR: Running command" << std::endl;
+                    } else {
+                        // concat the cmd vector into a single string
+                        std::ostringstream oss;
+                        std::copy(tokens.begin() + 1, tokens.end() - 1,
+                                  std::ostream_iterator<std::string>(oss, ","));
+                        oss << tokens.back();
+                        std::cout << oss.str() << std::endl;
+
+                        // append the job to the jobs list
+                        jobs.push_back(std::make_tuple(job_idx, c_pid, oss.str()));
+                        job_idx++;
+                    }
+                    return 0;
                 }
-                return 0;
+                // TODO: running a command that prints to stdout seems to interfere with a1jobs input
+            } else {
+                std::cout << "ERROR: Too many jobs already initiated" << std::endl;
             }
-            // TODO:
-        } else if (tokens.at(0) == "suspend"){
+        } else if (tokens.at(0) == "suspend") {
             int jobNo = std::stoi(tokens.at(1), nullptr, 100);
             kill(jobNo, SIGSTOP);
-        } else if (tokens.at(0) == "resume"){
+            // TODO:
+        } else if (tokens.at(0) == "resume") {
             int jobNo = std::stoi(tokens.at(1), nullptr, 100);
             kill(jobNo, SIGCONT);
-        } else if (tokens.at(0) == "terminate"){
+            // TODO:
+        } else if (tokens.at(0) == "terminate") {
             int jobNo = std::stoi(tokens.at(1), nullptr, 100);
             kill(jobNo, SIGKILL);
             // TODO:
-        } else if (tokens.at(0) == "exit"){
+        } else if (tokens.at(0) == "exit") {
             break;
-        } else if (tokens.at(0) == "quit"){
+        } else if (tokens.at(0) == "quit") {
             // TODO:
             break;
         } else {
-            std::cout << "ERROR: Invalid command: "+tokens.at(1) << std::endl;
+            std::cout << "ERROR: Invalid command: " + tokens.at(1) << std::endl;
         }
     }
 
