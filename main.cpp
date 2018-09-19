@@ -62,18 +62,18 @@ int main() {
                 if (c_pid == 0) {
                     switch (tokens.size()) {
                         case 2:
-                            execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), (char *) 0);
+                            execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), (char *) nullptr);
                             break;
                         case 3:
-                            execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(), (char *) 0);
+                            execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(), (char *) nullptr);
                             break;
                         case 4:
                             execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(),
-                                   tokens.at(3).c_str(), (char *) 0);
+                                   tokens.at(3).c_str(), (char *) nullptr);
                             break;
                         case 5:
                             execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(),
-                                   tokens.at(3).c_str(), tokens.at(4).c_str(), (char *) 0);
+                                   tokens.at(3).c_str(), tokens.at(4).c_str(), (char *) nullptr);
                             break;
                         default:
                             std::cout << "ERROR: Too many args for run" << std::endl;
