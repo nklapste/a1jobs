@@ -13,17 +13,13 @@
 static const int MAXJOBS = 32;
 
 
-typedef std::vector<std::tuple<int, pid_t, std::string> > jobs_list;
-
-
 int main() {
     rlimit rilimit{};
     rilimit.rlim_cur = 600;
     rilimit.rlim_max = 600;
     setrlimit(RLIMIT_CPU, &rilimit);
-    jobs_list jobs;
+    std::vector<std::tuple<int, pid_t, std::string> > jobs;
     int job_idx = 0;
-
     tms tms{};
     times(&tms);
     std::cout << tms.tms_cutime << std::endl;
@@ -108,7 +104,15 @@ int main() {
             kill(jobNo, SIGCONT);
             // TODO:
         } else if (tokens.at(0) == "terminate") {
+//            TODO: use std::find_if
+//            auto it = std::find_if(v.begin(), v.end(), [](const std::tuple<int,int,int,int>& e) {return std::get<0>(e) == 0;});
+
             int jobNo = std::stoi(tokens.at(1), nullptr, 100);
+            for(std::vector<int>::size_type i = 0; i != jobs.size(); i++) {
+                if(std::get<1>(jobs[i])==jobNo){
+                    jobs.erase(jobs.begin()+i-1);
+                }
+            }
             kill(jobNo, SIGKILL);
             // TODO:
         } else if (tokens.at(0) == "exit") {
