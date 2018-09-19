@@ -7,13 +7,17 @@
 #include <zconf.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <tuple>
 
+typedef std::vector< std::tuple<int, pid_t, std::string> > jobs_list;
 
 int main() {
     rlimit rilimit{};
     rilimit.rlim_cur = 600;
     rilimit.rlim_max = 600;
     setrlimit(RLIMIT_CPU, &rilimit);
+    jobs_list jobs;
+    int job_idx = 0;
 
     tms tms{};
     times(&tms);
@@ -42,8 +46,9 @@ int main() {
         } else if (tokens.at(0) == "list"){
            // TODO
         } else if (tokens.at(0) == "run"){
-            int pid = fork();
-            if (pid==0) {
+            pid_t c_pid = fork();
+            errno = 0;
+            if (c_pid==0) {
                 switch(tokens.size()){
                     case 2:
                         execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), (char *) 0);
@@ -60,6 +65,20 @@ int main() {
                     default:
                         std::cout << "ERROR: Too many args for run" << std::endl;
                         break;
+                }
+                if (errno){
+                    std::cout << "ERROR: Running command" << std::endl;
+                } else {
+                    // concat the cmd vector into a single string
+                    std::ostringstream oss;
+                    std::copy(tokens.begin()+1, tokens.end()-1,
+                              std::ostream_iterator<std::string>(oss, ","));
+                    oss << tokens.back();
+                    std::cout << oss.str() << std::endl;
+
+                    // append the job to the jobs list
+                    jobs.push_back(std::make_tuple(job_idx, c_pid, oss.str()));
+                    job_idx++;
                 }
                 return 0;
             }
