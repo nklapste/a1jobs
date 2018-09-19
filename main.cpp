@@ -1,6 +1,9 @@
 #include <iostream>
 #include <sys/resource.h>
 #include <sys/times.h>
+#include <sstream>
+#include <iterator>
+#include <vector>
 #include <zconf.h>
 
 int main() {
@@ -26,31 +29,39 @@ int main() {
         std::cin >> cmd;
         std::cout << std::endl;
 
-        if (cmd == "list"){
+        std::istringstream iss(cmd);
+        // parse the command into space separated tokens
+        std::vector<std::string> tokens;
+        copy(std::istream_iterator<std::string>(iss),
+             std::istream_iterator<std::string>(),
+             back_inserter(tokens));
+
+
+        if (tokens.at(0) == "list"){
             // TODO
         }
 
-        if (cmd == "run"){
+        if (tokens.at(0) == "run"){
             // TODO
         }
 
-        if (cmd == "suspend"){
+        if (tokens.at(0) == "suspend"){
             // TODO
         }
 
-        if (cmd == "resume"){
+        if (tokens.at(0) == "resume"){
             // TODO
         }
 
-        if (cmd == "terminate"){
+        if (tokens.at(0) == "terminate"){
             // TODO
         }
 
-        if (cmd == "exit"){
+        if (tokens.at(0) == "exit"){
             // TODO
         }
 
-        if (cmd == "quit"){
+        if (tokens.at(0) == "quit"){
             break;
         }
     }
