@@ -47,10 +47,13 @@ int main() {
         std::istringstream iss(cmd);
         std::vector<std::string> tokens{std::istream_iterator<std::string>{iss},
                                         std::istream_iterator<std::string>{}};
+
         if (tokens.empty()) {
             std::cout << "ERROR: Missing command" << std::endl;
         } else if (tokens.at(0) == "list") {
-            // TODO
+            for(std::tuple<int, pid_t, std::string> job: jobs){
+                printf("%d: (pid=%6d, cmd= %s)\n",std::get<0>(job), std::get<1>(job), std::get<2>(job).c_str());
+            }
         } else if (tokens.at(0) == "run") {
             if (job_idx < MAXJOBS) {
                 pid_t c_pid = fork();
@@ -76,21 +79,21 @@ int main() {
                             std::cout << "ERROR: Too many args for run" << std::endl;
                             break;
                     }
-                    if (errno) {
-                        std::cout << "ERROR: Running command" << std::endl;
-                    } else {
-                        // concat the cmd vector into a single string
-                        std::ostringstream oss;
-                        std::copy(tokens.begin() + 1, tokens.end() - 1,
-                                  std::ostream_iterator<std::string>(oss, ","));
-                        oss << tokens.back();
-                        std::cout << oss.str() << std::endl;
 
-                        // append the job to the jobs list
-                        jobs.push_back(std::make_tuple(job_idx, c_pid, oss.str()));
-                        job_idx++;
-                    }
                     return 0;
+                }
+                if (errno) {
+                    std::cout << "ERROR: Running command" << std::endl;
+                } else {
+                    // concat the cmd vector into a single string
+                    std::ostringstream cmd_str;
+                    std::copy(tokens.begin() + 1, tokens.end() - 1,
+                              std::ostream_iterator<std::string>(cmd_str, " "));
+                    cmd_str << tokens.back();
+                    std::cout << cmd_str.str() << std::endl;
+                    // append the job to the jobs list
+                    jobs.push_back(std::make_tuple(job_idx, c_pid, cmd_str.str()));
+                    job_idx++;
                 }
                 // TODO: running a command that prints to stdout seems to interfere with a1jobs input
             } else {
