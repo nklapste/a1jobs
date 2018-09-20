@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <tuple>
+#include <algorithm>
 
 
 static const int MAXJOBS = 32;
@@ -33,11 +34,11 @@ int main() {
     // main command event loop
     for (;;) {
         std::string cmd;
-        printf("a1jobs[%d]: ", pid);
 
         // get the current command line
-        // todo: weird behavior with whitespace
-        std::getline(std::cin >> std::ws, cmd);
+        std::cin.clear();
+        printf("a1jobs[%d]: ", pid);
+        std::getline(std::cin, cmd);
 
         // parse the command into space separated tokens
         std::istringstream iss(cmd);
@@ -57,6 +58,9 @@ int main() {
 
                 if (c_pid == 0) {
                     switch (tokens.size()) {
+                        case 1:
+                            std::cout << "ERROR: Missing args for run" << std::endl;
+                            break;
                         case 2:
                             execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), (char *) nullptr);
                             break;
@@ -80,6 +84,7 @@ int main() {
                 }
                 if (errno) {
                     std::cout << "ERROR: Running command" << std::endl;
+                    errno = 0;
                 } else {
                     // concat the cmd vector into a single string
                     std::ostringstream cmd_str;
@@ -88,40 +93,59 @@ int main() {
                     cmd_str << tokens.back();
                     std::cout << cmd_str.str() << std::endl;
                     // append the job to the jobs list
-                    jobs.push_back(std::make_tuple(job_idx, c_pid, cmd_str.str()));
+                    jobs.emplace_back(job_idx, c_pid, cmd_str.str());
+                    printf("Successfully executed command: %d: (pid=%6d, cmd= %s)\n",job_idx, c_pid, cmd_str.str().c_str());
                     job_idx++;
                 }
-                // TODO: running a command that prints to stdout seems to interfere with a1jobs input
             } else {
                 std::cout << "ERROR: Too many jobs already initiated" << std::endl;
             }
         } else if (tokens.at(0) == "suspend") {
-            int jobNo = std::stoi(tokens.at(1), nullptr, 100);
-            kill(jobNo, SIGSTOP);
-            // TODO:
-        } else if (tokens.at(0) == "resume") {
-            int jobNo = std::stoi(tokens.at(1), nullptr, 100);
-            kill(jobNo, SIGCONT);
-            // TODO:
-        } else if (tokens.at(0) == "terminate") {
-//            TODO: use std::find_if
-//            auto it = std::find_if(v.begin(), v.end(), [](const std::tuple<int,int,int,int>& e) {return std::get<0>(e) == 0;});
-
-            int jobNo = std::stoi(tokens.at(1), nullptr, 100);
-            for(std::vector<int>::size_type i = 0; i != jobs.size(); i++) {
-                if(std::get<1>(jobs[i])==jobNo){
-                    jobs.erase(jobs.begin()+i-1);
-                }
+            int jobNo = std::stoi(tokens.at(1), nullptr, 10);
+            auto it = std::find_if(jobs.begin(), jobs.end(), [&jobNo](const std::tuple<int, pid_t, std::string>& job) {return std::get<1>(job) == jobNo;});
+            if (it != jobs.end()) {
+                printf("found job: %d suspending\n", jobNo);
+                kill(jobNo, SIGSTOP);
+            } else {
+                printf("ERROR: failed to find job: %d  not suspending\n", jobNo);
             }
-            kill(jobNo, SIGKILL);
-            // TODO:
+        } else if (tokens.at(0) == "resume") {
+            int jobNo = std::stoi(tokens.at(1), nullptr, 10);
+            auto it = std::find_if(jobs.begin(), jobs.end(), [&jobNo](const std::tuple<int, pid_t, std::string>& job) {return std::get<1>(job) == jobNo;});
+            if (it != jobs.end()) {
+                printf("found job: %d resuming\n", jobNo);
+                kill(jobNo, SIGCONT);
+            } else {
+                printf("ERROR: failed to find job: %d  not resuming\n", jobNo);
+            }
+        } else if (tokens.at(0) == "terminate") {
+            pid_t jobNo = std::stoi(tokens.at(1), nullptr, 10);
+            std::cout << jobNo << std::endl;
+            auto it = std::find_if(jobs.begin(), jobs.end(), [&jobNo](const std::tuple<int, pid_t, std::string>& job) {return std::get<1>(job) == jobNo;});
+            if (it != jobs.end()) {
+                printf("found job: %d terminating\n", jobNo);
+                jobs.erase(it);
+                kill(jobNo, SIGKILL);
+            } else {
+                printf("ERROR: failed to find job: %d  not terminating\n", jobNo);
+            }
+
         } else if (tokens.at(0) == "exit") {
+            for(std::tuple<int, pid_t, std::string> job: jobs){
+                printf("terminating job: %d\n", std::get<1>(job));
+                kill(std::get<1>(job), SIGKILL);
+            }
             break;
         } else if (tokens.at(0) == "quit") {
-            // TODO:
+            printf("WARNING: Exiting a1jobs without terminating head processes\n");
             break;
         } else {
-            std::cout << "ERROR: Invalid command: " + tokens.at(1) << std::endl;
+            std::ostringstream cmd_str;
+            std::copy(tokens.begin() + 1, tokens.end() - 1,
+                      std::ostream_iterator<std::string>(cmd_str, " "));
+            cmd_str << tokens.back();
+            // append the job to the jobs list
+            printf("ERROR: Invalid command: %s", cmd_str.str().c_str());
         }
     }
 
