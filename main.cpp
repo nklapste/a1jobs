@@ -75,7 +75,7 @@ int main() {
                 if (c_pid == 0) {
                     switch (tokens.size()) {
                         case 1:
-                            printf("ERROR: Missing args for run\n");
+                            printf("ERROR: Missing arguments\n");
                             break;
                         case 2:
                             execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), (char *) nullptr);
