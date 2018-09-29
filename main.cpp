@@ -26,7 +26,6 @@ void set_cpu_safety() {
 
 
 int main() {
-
     set_cpu_safety();
 
     std::vector<std::tuple<int, pid_t, std::string> > jobs;
@@ -89,7 +88,6 @@ int main() {
                             std::cout << "ERROR: Too many args for run" << std::endl;
                             break;
                     }
-
                     return 0;
                 }
                 if (errno) {
@@ -102,6 +100,7 @@ int main() {
                               std::ostream_iterator<std::string>(cmd_str, " "));
                     cmd_str << tokens.back();
                     std::cout << cmd_str.str() << std::endl;
+
                     // append the job to the jobs list
                     jobs.emplace_back(job_idx, c_pid, cmd_str.str());
                     printf("Successfully executed command: %d: (pid=%6d, cmd= %s)\n",job_idx, c_pid, cmd_str.str().c_str());
@@ -138,7 +137,6 @@ int main() {
             } else {
                 printf("ERROR: failed to find job: %d  not terminating\n", jobNo);
             }
-
         } else if (tokens.at(0) == "exit") {
             for(std::tuple<int, pid_t, std::string> job: jobs){
                 printf("terminating job: %d\n", std::get<1>(job));
@@ -151,12 +149,12 @@ int main() {
         } else {
             std::ostringstream cmd_str;
             std::copy(tokens.begin() + 1, tokens.end() - 1,
-                      std::ostream_iterator<std::string>(cmd_str, " "));
+                  std::ostream_iterator<std::string>(cmd_str, " "));
             cmd_str << tokens.back();
+
             // append the job to the jobs list
             printf("ERROR: Invalid command: %s", cmd_str.str().c_str());
         }
     }
-
     return 0;
 }
