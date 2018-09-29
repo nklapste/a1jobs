@@ -14,11 +14,21 @@
 static const int MAXJOBS = 32;
 
 
-int main() {
+/**
+ * Set the cpu time limit to 10 mins for safe development.
+ */
+void set_cpu_safety() {
     rlimit rilimit{};
     rilimit.rlim_cur = 600;
     rilimit.rlim_max = 600;
     setrlimit(RLIMIT_CPU, &rilimit);
+}
+
+
+int main() {
+
+    set_cpu_safety();
+
     std::vector<std::tuple<int, pid_t, std::string> > jobs;
     int job_idx = 0;
     tms tms{};
@@ -101,7 +111,7 @@ int main() {
                 std::cout << "ERROR: Too many jobs already initiated" << std::endl;
             }
         } else if (tokens.at(0) == "suspend") {
-            int jobNo = std::stoi(tokens.at(1), nullptr, 10);
+            pid_t jobNo = std::stoi(tokens.at(1), nullptr, 10);
             auto it = std::find_if(jobs.begin(), jobs.end(), [&jobNo](const std::tuple<int, pid_t, std::string>& job) {return std::get<1>(job) == jobNo;});
             if (it != jobs.end()) {
                 printf("found job: %d suspending\n", jobNo);
@@ -110,7 +120,7 @@ int main() {
                 printf("ERROR: failed to find job: %d  not suspending\n", jobNo);
             }
         } else if (tokens.at(0) == "resume") {
-            int jobNo = std::stoi(tokens.at(1), nullptr, 10);
+            pid_t jobNo = std::stoi(tokens.at(1), nullptr, 10);
             auto it = std::find_if(jobs.begin(), jobs.end(), [&jobNo](const std::tuple<int, pid_t, std::string>& job) {return std::get<1>(job) == jobNo;});
             if (it != jobs.end()) {
                 printf("found job: %d resuming\n", jobNo);
@@ -120,7 +130,6 @@ int main() {
             }
         } else if (tokens.at(0) == "terminate") {
             pid_t jobNo = std::stoi(tokens.at(1), nullptr, 10);
-            std::cout << jobNo << std::endl;
             auto it = std::find_if(jobs.begin(), jobs.end(), [&jobNo](const std::tuple<int, pid_t, std::string>& job) {return std::get<1>(job) == jobNo;});
             if (it != jobs.end()) {
                 printf("found job: %d terminating\n", jobNo);
