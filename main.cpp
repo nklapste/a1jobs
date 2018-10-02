@@ -11,9 +11,9 @@
 #include <sstream>
 #include <iterator>
 #include <vector>
-#include <zconf.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <tuple>
 #include <algorithm>
 
