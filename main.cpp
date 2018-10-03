@@ -68,14 +68,17 @@ int main() {
             }
         } else if (tokens.at(0) == "run") {
             if (job_idx < MAXJOBS) {
-                pid_t c_pid = fork();
                 errno = 0;
-
+                if (tokens.size()==1){
+                    printf("ERROR: Missing arguments\n");
+                    errno = 1;
+                }else if (tokens.size()>5){
+                    printf("ERROR: Too many args for run\n");
+                    errno = 1;
+                }
+                pid_t c_pid = fork();
                 if (c_pid == 0) {
                     switch (tokens.size()) {
-                        case 1:
-                            printf("ERROR: Missing arguments\n");
-                            break;
                         case 2:
                             execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), (char *) nullptr);
                             break;
@@ -91,7 +94,6 @@ int main() {
                                    tokens.at(3).c_str(), tokens.at(4).c_str(), (char *) nullptr);
                             break;
                         default:
-                            printf("ERROR: Too many args for run\n");
                             break;
                     }
                     return 0;
@@ -105,7 +107,6 @@ int main() {
                     std::copy(tokens.begin() + 1, tokens.end() - 1,
                               std::ostream_iterator<std::string>(cmd_str, " "));
                     cmd_str << tokens.back();
-                    std::cout << cmd_str.str() << std::endl;
 
                     // append the job to the jobs list
                     jobs.emplace_back(job_idx, c_pid, cmd_str.str());
@@ -152,9 +153,11 @@ int main() {
                 printf("terminating job: %u\n", std::get<1>(job));
                 kill(std::get<1>(job), SIGKILL);
             }
+            printf("exiting a1jobs\n");
             break;
         } else if (tokens.at(0) == "quit") {
             printf("WARNING: Exiting a1jobs without terminating head processes\n");
+            printf("exiting a1jobs\n");
             break;
         } else {
             std::ostringstream cmd_str;
