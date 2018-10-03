@@ -77,6 +77,24 @@ void suspendJob(job_list &jobs, int jobNo) {
 
 
 /**
+ * Send the SIGCONT signal to a Head process. Thus, resuming the head process if it was stopped.
+ *
+ * @param jobs the list of head processes.
+ * @param jobNo the head process number to stop.
+ */
+void resumeJob(job_list &jobs, int jobNo) {
+    auto it = find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<0>(job) == jobNo;});
+    if (it != jobs.end()) {
+        pid_t res_pid = std::get<1>(*it);
+        printf("found job: %u resuming\n", res_pid);
+        kill(res_pid, SIGCONT);
+    } else {
+        printf("ERROR: failed to find job: %u  not resuming\n", jobNo);
+    }
+}
+
+
+/**
  * Terminate the a1jobs process.
  *
  * Before termination however terminate the head process to every head process still in job_list.
@@ -207,14 +225,7 @@ int main() {
             suspendJob(jobs, jobNo);
         } else if (tokens.at(0) == "resume") {
             int jobNo = std::stoi(tokens.at(1), nullptr, 10);
-            auto it = std::find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<0>(job) == jobNo;});
-            if (it != jobs.end()) {
-                pid_t res_pid = std::get<1>(*it);
-                printf("found job: %u resuming\n", res_pid);
-                kill(res_pid, SIGCONT);
-            } else {
-                printf("ERROR: failed to find job: %u  not resuming\n", jobNo);
-            }
+            resumeJob(jobs, jobNo);
         } else if (tokens.at(0) == "terminate") {
             int jobNo = std::stoi(tokens.at(1), nullptr, 10);
             auto it = std::find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<0>(job) == jobNo;});
