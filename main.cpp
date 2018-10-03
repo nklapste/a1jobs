@@ -20,8 +20,20 @@
 static const int MAX_JOBS = 32;
 
 
-typedef std::tuple<uint, pid_t, std::string> job;
+typedef std::tuple<pid_t, std::string> job;
 typedef std::vector<job> jobList;
+
+
+/**
+ * Get the Job number from a vector of a1jobs command tokens.
+ *
+ * @param tokens vector of a1jobs command arguements.
+ * @return a Job number.
+ */
+uint getJobNo(std::vector<std::string> &tokens) {
+    uint jobNo = static_cast<uint>(stoi(tokens.at(1), nullptr, 10));
+    return jobNo;
+}
 
 
 /**
@@ -34,7 +46,7 @@ typedef std::vector<job> jobList;
 void listJobs(const jobList &jobs) {
     uint jobIdx = 0;
     for(job job: jobs){
-        printf("%u: (pid=%6u, cmd= %s)\n", jobIdx, std::get<1>(job), std::get<2>(job).c_str());
+        printf("%u: (pid=%6u, cmd= %s)\n", jobIdx, std::get<0>(job), std::get<1>(job).c_str());
         jobIdx++;
     }
 }
@@ -91,7 +103,7 @@ void runJob(jobList &jobs, std::vector<std::string> &tokens) {
             cmdStr << tokens.back();
 
             // append the new head process to the jobs list
-            jobs.emplace_back(0, childPID, cmdStr.str());
+            jobs.emplace_back(childPID, cmdStr.str());
             printf("Successfully executed command: %lu: (pid=%6u, cmd= %s)\n", jobs.size()-1, childPID, cmdStr.str().c_str());
         }
     }
@@ -104,10 +116,9 @@ void runJob(jobList &jobs, std::vector<std::string> &tokens) {
  * @param jobs the list of head processes.
  * @param jobNo the head process number to stop.
  */
-void suspendJob(jobList &jobs, int jobNo) {
-    auto it = find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<0>(job) == jobNo;});
-    if (it != jobs.end()) {
-        pid_t jobPID = std::get<1>(*it);
+void suspendJob(jobList &jobs, uint jobNo) {
+    if (jobNo < jobs.size()){
+        pid_t jobPID = std::get<0>(jobs.at(jobNo));
         printf("found job: %u suspending\n", jobPID);
         kill(jobPID, SIGSTOP);
     } else {
@@ -122,10 +133,9 @@ void suspendJob(jobList &jobs, int jobNo) {
  * @param jobs the list of head processes.
  * @param jobNo the head process number to stop.
  */
-void resumeJob(jobList &jobs, int jobNo) {
-    auto it = find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<0>(job) == jobNo;});
-    if (it != jobs.end()) {
-        pid_t jobPID = std::get<1>(*it);
+void resumeJob(jobList &jobs, uint jobNo) {
+    if (jobNo < jobs.size()){
+        pid_t jobPID = std::get<0>(jobs.at(jobNo));
         printf("found job: %u resuming\n", jobPID);
         kill(jobPID, SIGCONT);
     } else {
@@ -144,7 +154,7 @@ void resumeJob(jobList &jobs, int jobNo) {
  */
 void terminateJob(jobList &jobs, uint jobNo) {
     if (jobNo < jobs.size()){
-        pid_t jobPID = std::get<1>(jobs.at(jobNo));
+        pid_t jobPID = std::get<0>(jobs.at(jobNo));
         printf("found job: %u terminating\n", jobPID);
         kill(jobPID, SIGKILL);
         jobs.erase(jobs.begin() + jobNo);
@@ -163,7 +173,7 @@ void terminateJob(jobList &jobs, uint jobNo) {
  */
 void exitA1jobs(const jobList &jobs) {
     for(job job: jobs){
-        pid_t jobPID = std::get<1>(job);
+        pid_t jobPID = std::get<0>(job);
         printf("terminating job: %u\n", jobPID);
         kill(jobPID, SIGKILL);
     }
@@ -233,14 +243,11 @@ int main() {
         } else if (tokens.at(0) == "run") {
             runJob(jobs, tokens);
         } else if (tokens.at(0) == "suspend") {
-            int jobNo = std::stoi(tokens.at(1), nullptr, 10);
-            suspendJob(jobs, jobNo);
+            suspendJob(jobs,  getJobNo(tokens));
         } else if (tokens.at(0) == "resume") {
-            int jobNo = std::stoi(tokens.at(1), nullptr, 10);
-            resumeJob(jobs, jobNo);
+            resumeJob(jobs, getJobNo(tokens));
         } else if (tokens.at(0) == "terminate") {
-            int jobNo = std::stoi(tokens.at(1), nullptr, 10);
-            terminateJob(jobs, jobNo);
+            terminateJob(jobs, getJobNo(tokens));
         } else if (tokens.at(0) == "exit") {
             exitA1jobs(jobs);
             break;
@@ -254,11 +261,12 @@ int main() {
     tms endCPU{};
     static clock_t endTime = times(&endCPU);
 
-    printf("real:        %li sec.\n", (long int)(endTime - startTime)/sysconf(_SC_CLK_TCK));
-    printf("user:        %li sec.\n", (long int)(endCPU.tms_utime - startCPU.tms_utime)/sysconf(_SC_CLK_TCK));
-    printf("sys:         %li sec.\n", (long int)(endCPU.tms_stime - startCPU.tms_stime)/sysconf(_SC_CLK_TCK));
-    printf("child user:  %li sec.\n", (long int)(endCPU.tms_cutime - startCPU.tms_cutime)/sysconf(_SC_CLK_TCK));
-    printf("child sys:   %li sec.\n", (long int)(endCPU.tms_cstime - startCPU.tms_cstime)/sysconf(_SC_CLK_TCK));
+    printf("real:        %5li sec.\n", (long int)(endTime - startTime)/sysconf(_SC_CLK_TCK));
+    printf("user:        %5li sec.\n", (long int)(endCPU.tms_utime - startCPU.tms_utime)/sysconf(_SC_CLK_TCK));
+    printf("sys:         %5li sec.\n", (long int)(endCPU.tms_stime - startCPU.tms_stime)/sysconf(_SC_CLK_TCK));
+    printf("child user:  %5li sec.\n", (long int)(endCPU.tms_cutime - startCPU.tms_cutime)/sysconf(_SC_CLK_TCK));
+    printf("child sys:   %5li sec.\n", (long int)(endCPU.tms_cstime - startCPU.tms_cstime)/sysconf(_SC_CLK_TCK));
 
     return 0;
 }
+
