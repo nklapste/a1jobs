@@ -68,15 +68,15 @@ void listJobs(const job_list &jobs) {
  * @param tokens vector of the string command line arguements given.
  */
 void runJob(job_list &jobs, std::vector<std::string> &tokens) {
-    if (jobs.size() < MAXJOBS) {
+    if (tokens.size()==1){
+        printf("ERROR: Missing arguments\n");
+    }else if (tokens.size()>5){
+        printf("ERROR: Too many args for run\n");
+    } else if (jobs.size() >= MAXJOBS) {
+        printf("ERROR: Too many jobs already initiated\n");
+    } else {
         errno = 0;
-        if (tokens.size()==1){
-            printf("ERROR: Missing arguments\n");
-            errno = 1;
-        }else if (tokens.size()>5){
-            printf("ERROR: Too many args for run\n");
-            errno = 1;
-        }
+
         pid_t c_pid = fork();
         if (c_pid == 0) {
             switch (tokens.size()) {
@@ -97,7 +97,8 @@ void runJob(job_list &jobs, std::vector<std::string> &tokens) {
                 default:
                     break;
             }
-//                    return 0;
+            exit(0);
+            // TODO: catch if failing to execute
         }
         if (errno) {
             printf("ERROR: Running command\n");
@@ -109,12 +110,10 @@ void runJob(job_list &jobs, std::vector<std::string> &tokens) {
                  std::ostream_iterator<std::__cxx11::string>(cmd_str, " "));
             cmd_str << tokens.back();
 
-            // append the job to the jobs list
+            // append the new head process to the jobs list
             jobs.emplace_back(0, c_pid, cmd_str.str());
-            printf("Successfully executed command: %lu: (pid=%6u, cmd= %s)\n",jobs.size(), c_pid, cmd_str.str().c_str());
+            printf("Successfully executed command: %lu: (pid=%6u, cmd= %s)\n", jobs.size()-1, c_pid, cmd_str.str().c_str());
         }
-    } else {
-        std::cout << "ERROR: Too many jobs already initiated" << std::endl;
     }
 }
 
@@ -214,7 +213,6 @@ void invalidCommand(std::vector<std::string> &tokens) {
 }
 
 
-
 /**
  * Set the cpu time limit to 10 minutes for safe development.
  */
@@ -229,8 +227,9 @@ void set_cpu_safety() {
 int main() {
     set_cpu_safety();
     job_list jobs;
-    uint job_idx = 0;
     pid_t pid = getA1jobsDetails();
+
+    // TODO: get cpu times
 
     // main command event loop
     for (;;) {
@@ -270,5 +269,6 @@ int main() {
             invalidCommand(tokens);
         }
     }
+    // TODO: get cpu times
     return 0;
 }
