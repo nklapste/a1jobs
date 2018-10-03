@@ -23,7 +23,7 @@ typedef std::vector<job> job_list;
 
 
 /**
- * Set the cpu time limit to 10 mins for safe development.
+ * Set the cpu time limit to 10 minutes for safe development.
  */
 void set_cpu_safety() {
     rlimit rilimit{};
@@ -58,8 +58,7 @@ int main() {
 
         // parse the command into space separated tokens
         std::istringstream iss(cmd);
-        std::vector<std::string> tokens{std::istream_iterator<std::string>{iss},
-                                        std::istream_iterator<std::string>{}};
+        std::vector<std::string> tokens{std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}};
 
         if (tokens.empty()) {
             printf("ERROR: Missing command\n");
