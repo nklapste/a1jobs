@@ -21,27 +21,7 @@ static const int MAXJOBS = 32;
 
 
 typedef std::tuple<uint, pid_t, std::string> job;
-typedef std::vector<job> job_list;
-
-
-/**
- * Get and print details on the a1jobs process.
- *
- * @return {@code pid_t} the pid of the a1jobs process.
- */
-pid_t getA1jobsDetails() {
-    // TODO: implemented wrong redo
-    tms tms{};
-    times(&tms);
-    pid_t pid = getpid();
-
-    std::cout << "cutime: " << tms.tms_cutime << std::endl;
-    std::cout << "stime:  " << tms.tms_stime << std::endl;
-    std::cout << "cstime: " << tms.tms_cstime << std::endl;
-    std::cout << "utime:  " << tms.tms_utime << std::endl;
-    std::cout << "pid:    " << pid << std::endl;
-    return pid;
-}
+typedef std::vector<job> jobList;
 
 
 /**
@@ -51,7 +31,7 @@ pid_t getA1jobsDetails() {
  *
  * @param jobs the list of head processes.
  */
-void listJobs(const job_list &jobs) {
+void listJobs(const jobList &jobs) {
     uint jobIdx = 0;
     for(job job: jobs){
         printf("%u: (pid=%6u, cmd= %s)\n", jobIdx, std::get<1>(job), std::get<2>(job).c_str());
@@ -67,7 +47,7 @@ void listJobs(const job_list &jobs) {
  * @param jobs the list of head processes..
  * @param tokens vector of the string command line arguements given.
  */
-void runJob(job_list &jobs, std::vector<std::string> &tokens) {
+void runJob(jobList &jobs, std::vector<std::string> &tokens) {
     if (tokens.size()==1){
         printf("ERROR: Missing arguments\n");
     }else if (tokens.size()>5){
@@ -77,8 +57,8 @@ void runJob(job_list &jobs, std::vector<std::string> &tokens) {
     } else {
         errno = 0;
 
-        pid_t c_pid = fork();
-        if (c_pid == 0) {
+        pid_t childPID = fork();
+        if (childPID == 0) {
             switch (tokens.size()) {
                 case 2:
                     execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), (char *) nullptr);
@@ -105,14 +85,14 @@ void runJob(job_list &jobs, std::vector<std::string> &tokens) {
             errno = 0;
         } else {
             // concat the cmd vector into a single string
-            std::ostringstream cmd_str;
+            std::ostringstream cmdStr;
             copy(tokens.begin() + 1, tokens.end() - 1,
-                 std::ostream_iterator<std::__cxx11::string>(cmd_str, " "));
-            cmd_str << tokens.back();
+                 std::ostream_iterator<std::string>(cmdStr, " "));
+            cmdStr << tokens.back();
 
             // append the new head process to the jobs list
-            jobs.emplace_back(0, c_pid, cmd_str.str());
-            printf("Successfully executed command: %lu: (pid=%6u, cmd= %s)\n", jobs.size()-1, c_pid, cmd_str.str().c_str());
+            jobs.emplace_back(0, childPID, cmdStr.str());
+            printf("Successfully executed command: %lu: (pid=%6u, cmd= %s)\n", jobs.size()-1, childPID, cmdStr.str().c_str());
         }
     }
 }
@@ -124,12 +104,12 @@ void runJob(job_list &jobs, std::vector<std::string> &tokens) {
  * @param jobs the list of head processes.
  * @param jobNo the head process number to stop.
  */
-void suspendJob(job_list &jobs, int jobNo) {
+void suspendJob(jobList &jobs, int jobNo) {
     auto it = find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<0>(job) == jobNo;});
     if (it != jobs.end()) {
-        pid_t sus_pid = std::get<1>(*it);
-        printf("found job: %u suspending\n", sus_pid);
-        kill(sus_pid, SIGSTOP);
+        pid_t jobPID = std::get<1>(*it);
+        printf("found job: %u suspending\n", jobPID);
+        kill(jobPID, SIGSTOP);
     } else {
         printf("ERROR: failed to find job: %u  not suspending\n", jobNo);
     }
@@ -142,12 +122,12 @@ void suspendJob(job_list &jobs, int jobNo) {
  * @param jobs the list of head processes.
  * @param jobNo the head process number to stop.
  */
-void resumeJob(job_list &jobs, int jobNo) {
+void resumeJob(jobList &jobs, int jobNo) {
     auto it = find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<0>(job) == jobNo;});
     if (it != jobs.end()) {
-        pid_t res_pid = std::get<1>(*it);
-        printf("found job: %u resuming\n", res_pid);
-        kill(res_pid, SIGCONT);
+        pid_t jobPID = std::get<1>(*it);
+        printf("found job: %u resuming\n", jobPID);
+        kill(jobPID, SIGCONT);
     } else {
         printf("ERROR: failed to find job: %u  not resuming\n", jobNo);
     }
@@ -162,11 +142,11 @@ void resumeJob(job_list &jobs, int jobNo) {
  * @param jobNo the head process number to stop.
  * @return
  */
-void terminateJob(job_list &jobs, uint jobNo) {
+void terminateJob(jobList &jobs, uint jobNo) {
     if (jobNo < jobs.size()){
-        pid_t term_pid = std::get<1>(jobs.at(jobNo));
-        printf("found job: %u terminating\n", term_pid);
-        kill(term_pid, SIGKILL);
+        pid_t jobPID = std::get<1>(jobs.at(jobNo));
+        printf("found job: %u terminating\n", jobPID);
+        kill(jobPID, SIGKILL);
         jobs.erase(jobs.begin() + jobNo);
     } else {
         printf("ERROR: failed to find job: %u  not terminating\n", jobNo);
@@ -181,10 +161,11 @@ void terminateJob(job_list &jobs, uint jobNo) {
  *
  * @param jobs the list of head processes to terminate before exiting a1jobs.
  */
-void exitA1jobs(const job_list &jobs) {
+void exitA1jobs(const jobList &jobs) {
     for(job job: jobs){
-        printf("terminating job: %u\n", std::get<1>(job));
-        kill(std::get<1>(job), SIGKILL);
+        pid_t jobPID = std::get<1>(job);
+        printf("terminating job: %u\n", jobPID);
+        kill(jobPID, SIGKILL);
     }
     printf("exiting a1jobs\n");
 }
@@ -205,11 +186,11 @@ void quitA1jobs() {
  * @param tokens
  */
 void invalidCommand(std::vector<std::string> &tokens) {
-    std::ostringstream cmd_str;
+    std::ostringstream cmdStr;
     copy(tokens.begin() + 1, tokens.end() - 1,
-         std::ostream_iterator<std::__cxx11::string>(cmd_str, " "));
-    cmd_str << tokens.back();
-    printf("ERROR: Invalid command: %s\n", cmd_str.str().c_str());
+         std::ostream_iterator<std::__cxx11::string>(cmdStr, " "));
+    cmdStr << tokens.back();
+    printf("ERROR: Invalid command: %s\n", cmdStr.str().c_str());
 }
 
 
@@ -226,10 +207,11 @@ void set_cpu_safety() {
 
 int main() {
     set_cpu_safety();
-    job_list jobs;
-    pid_t pid = getA1jobsDetails();
+    jobList jobs;
+    pid_t pid = getpid();
 
-    // TODO: get cpu times
+    tms startCPU{};
+    static clock_t startTime = times(&startCPU);
 
     // main command event loop
     for (;;) {
@@ -269,6 +251,14 @@ int main() {
             invalidCommand(tokens);
         }
     }
-    // TODO: get cpu times
+    tms endCPU{};
+    static clock_t endTime = times(&endCPU);
+
+    printf("real:        %li\n", (long int)(endTime - startTime)/sysconf(_SC_CLK_TCK));
+    printf("user:        %li\n", (long int)(endCPU.tms_utime - startCPU.tms_utime)/sysconf(_SC_CLK_TCK));
+    printf("sys:         %li\n", (long int)(endCPU.tms_stime - startCPU.tms_stime)/sysconf(_SC_CLK_TCK));
+    printf("child user:  %li\n", (long int)(endCPU.tms_cutime - startCPU.tms_cutime)/sysconf(_SC_CLK_TCK));
+    printf("child sys:   %li\n", (long int)(endCPU.tms_cstime - startCPU.tms_cstime)/sysconf(_SC_CLK_TCK));
+
     return 0;
 }
