@@ -52,8 +52,69 @@ pid_t getA1jobsDetails() {
  * @param jobs the list of head processes.
  */
 void listJobs(const job_list &jobs) {
+    uint jobIdx = 0;
     for(job job: jobs){
-        printf("%u: (pid=%6u, cmd= %s)\n", std::get<0>(job), std::get<1>(job), std::get<2>(job).c_str());
+        printf("%u: (pid=%6u, cmd= %s)\n", jobIdx, std::get<1>(job), std::get<2>(job).c_str());
+        jobIdx++;
+    }
+}
+
+
+/**
+ * If we are not already at the max number of jobs fork and create a new head process and
+ * running the command specified.
+ *
+ * @param jobs the list of head processes..
+ * @param tokens vector of the string command line arguements given.
+ */
+void runJob(job_list &jobs, std::vector<std::string> &tokens) {
+    if (jobs.size() < MAXJOBS) {
+        errno = 0;
+        if (tokens.size()==1){
+            printf("ERROR: Missing arguments\n");
+            errno = 1;
+        }else if (tokens.size()>5){
+            printf("ERROR: Too many args for run\n");
+            errno = 1;
+        }
+        pid_t c_pid = fork();
+        if (c_pid == 0) {
+            switch (tokens.size()) {
+                case 2:
+                    execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), (char *) nullptr);
+                    break;
+                case 3:
+                    execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(), (char *) nullptr);
+                    break;
+                case 4:
+                    execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(),
+                           tokens.at(3).c_str(), (char *) nullptr);
+                    break;
+                case 5:
+                    execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(),
+                           tokens.at(3).c_str(), tokens.at(4).c_str(), (char *) nullptr);
+                    break;
+                default:
+                    break;
+            }
+//                    return 0;
+        }
+        if (errno) {
+            printf("ERROR: Running command\n");
+            errno = 0;
+        } else {
+            // concat the cmd vector into a single string
+            std::ostringstream cmd_str;
+            copy(tokens.begin() + 1, tokens.end() - 1,
+                 std::ostream_iterator<std::__cxx11::string>(cmd_str, " "));
+            cmd_str << tokens.back();
+
+            // append the job to the jobs list
+            jobs.emplace_back(0, c_pid, cmd_str.str());
+            printf("Successfully executed command: %lu: (pid=%6u, cmd= %s)\n",jobs.size(), c_pid, cmd_str.str().c_str());
+        }
+    } else {
+        std::cout << "ERROR: Too many jobs already initiated" << std::endl;
     }
 }
 
@@ -102,18 +163,15 @@ void resumeJob(job_list &jobs, int jobNo) {
  * @param jobNo the head process number to stop.
  * @return
  */
-uint terminateJob(job_list &jobs, uint job_idx, int jobNo) {
-    auto it = find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<0>(job) == jobNo;});
-    if (it != jobs.end()) {
-        pid_t term_pid = std::get<1>(*it);
+void terminateJob(job_list &jobs, uint jobNo) {
+    if (jobNo < jobs.size()){
+        pid_t term_pid = std::get<1>(jobs.at(jobNo));
         printf("found job: %u terminating\n", term_pid);
-        jobs.erase(it);
         kill(term_pid, SIGKILL);
-        job_idx--;
+        jobs.erase(jobs.begin() + jobNo);
     } else {
         printf("ERROR: failed to find job: %u  not terminating\n", jobNo);
     }
-    return job_idx;
 }
 
 
@@ -130,7 +188,6 @@ void exitA1jobs(const job_list &jobs) {
         kill(std::get<1>(job), SIGKILL);
     }
     printf("exiting a1jobs\n");
-    exit(0);
 }
 
 
@@ -140,7 +197,6 @@ void exitA1jobs(const job_list &jobs) {
 void quitA1jobs() {
     printf("WARNING: Exiting a1jobs without terminating head processes\n");
     printf("exiting a1jobs\n");
-    exit(0);
 }
 
 
@@ -194,55 +250,7 @@ int main() {
         } else if (tokens.at(0) == "list") {
             listJobs(jobs);
         } else if (tokens.at(0) == "run") {
-            if (job_idx < MAXJOBS) {
-                errno = 0;
-                if (tokens.size()==1){
-                    printf("ERROR: Missing arguments\n");
-                    errno = 1;
-                }else if (tokens.size()>5){
-                    printf("ERROR: Too many args for run\n");
-                    errno = 1;
-                }
-                pid_t c_pid = fork();
-                if (c_pid == 0) {
-                    switch (tokens.size()) {
-                        case 2:
-                            execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), (char *) nullptr);
-                            break;
-                        case 3:
-                            execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(), (char *) nullptr);
-                            break;
-                        case 4:
-                            execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(),
-                                   tokens.at(3).c_str(), (char *) nullptr);
-                            break;
-                        case 5:
-                            execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(),
-                                   tokens.at(3).c_str(), tokens.at(4).c_str(), (char *) nullptr);
-                            break;
-                        default:
-                            break;
-                    }
-                    return 0;
-                }
-                if (errno) {
-                    printf("ERROR: Running command\n");
-                    errno = 0;
-                } else {
-                    // concat the cmd vector into a single string
-                    std::ostringstream cmd_str;
-                    std::copy(tokens.begin() + 1, tokens.end() - 1,
-                              std::ostream_iterator<std::string>(cmd_str, " "));
-                    cmd_str << tokens.back();
-
-                    // append the job to the jobs list
-                    jobs.emplace_back(job_idx, c_pid, cmd_str.str());
-                    printf("Successfully executed command: %u: (pid=%6u, cmd= %s)\n",job_idx, c_pid, cmd_str.str().c_str());
-                    job_idx++;
-                }
-            } else {
-                std::cout << "ERROR: Too many jobs already initiated" << std::endl;
-            }
+            runJob(jobs, tokens);
         } else if (tokens.at(0) == "suspend") {
             int jobNo = std::stoi(tokens.at(1), nullptr, 10);
             suspendJob(jobs, jobNo);
@@ -251,16 +259,16 @@ int main() {
             resumeJob(jobs, jobNo);
         } else if (tokens.at(0) == "terminate") {
             int jobNo = std::stoi(tokens.at(1), nullptr, 10);
-            job_idx = terminateJob(jobs, job_idx, jobNo);
+            terminateJob(jobs, jobNo);
         } else if (tokens.at(0) == "exit") {
             exitA1jobs(jobs);
             break;
         } else if (tokens.at(0) == "quit") {
             quitA1jobs();
+            break;
         } else {
             invalidCommand(tokens);
         }
     }
     return 0;
 }
-
