@@ -140,6 +140,7 @@ int main() {
                 printf("found job: %u terminating\n", jobNo);
                 jobs.erase(it);
                 kill(jobNo, SIGKILL);
+                job_idx--;
             } else {
                 printf("ERROR: failed to find job: %u  not terminating\n", jobNo);
             }
