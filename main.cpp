@@ -18,8 +18,43 @@
 #include <algorithm>
 
 static const int MAXJOBS = 32;
+
+
 typedef std::tuple<uint, pid_t, std::string> job;
 typedef std::vector<job> job_list;
+
+
+/**
+ * Get and print details on the a1jobs process.
+ *
+ * @return {@code pid_t} the pid of the a1jobs process.
+ */
+pid_t getA1jobsDetails() {
+    tms tms{};
+    times(&tms);
+    pid_t pid = getpid();
+
+    std::cout << "cutime: " << tms.tms_cutime << std::endl;
+    std::cout << "stime:  " << tms.tms_stime << std::endl;
+    std::cout << "cstime: " << tms.tms_cstime << std::endl;
+    std::cout << "utime:  " << tms.tms_utime << std::endl;
+    std::cout << "pid:    " << pid << std::endl;
+    return pid;
+}
+
+
+/**
+ * Print a error message when a unsupported command is given to a1jobs.
+ *
+ * @param tokens
+ */
+void invalidCommand(std::vector<std::string> &tokens) {
+    std::ostringstream cmd_str;
+    copy(tokens.begin() + 1, tokens.end() - 1,
+         std::ostream_iterator<std::__cxx11::string>(cmd_str, " "));
+    cmd_str << tokens.back();
+    printf("ERROR: Invalid command: %s\n", cmd_str.str().c_str());
+}
 
 
 /**
@@ -37,15 +72,7 @@ int main() {
     set_cpu_safety();
     job_list jobs;
     uint job_idx = 0;
-    tms tms{};
-    times(&tms);
-    pid_t pid = getpid();
-
-    std::cout << "cutime: " << tms.tms_cutime << std::endl;
-    std::cout << "stime:  " << tms.tms_stime << std::endl;
-    std::cout << "cstime: " << tms.tms_cstime << std::endl;
-    std::cout << "utime:  " << tms.tms_utime << std::endl;
-    std::cout << "pid:    " << pid << std::endl;
+    pid_t pid = getA1jobsDetails();
 
     // main command event loop
     for (;;) {
@@ -160,13 +187,9 @@ int main() {
             printf("exiting a1jobs\n");
             break;
         } else {
-            std::ostringstream cmd_str;
-            std::copy(tokens.begin() + 1, tokens.end() - 1,
-                  std::ostream_iterator<std::string>(cmd_str, " "));
-            cmd_str << tokens.back();
-            // append the job to the jobs list
-            printf("ERROR: Invalid command: %s\n", cmd_str.str().c_str());
+            invalidCommand(tokens);
         }
     }
     return 0;
 }
+
