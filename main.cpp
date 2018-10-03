@@ -116,30 +116,33 @@ int main() {
                 std::cout << "ERROR: Too many jobs already initiated" << std::endl;
             }
         } else if (tokens.at(0) == "suspend") {
-            pid_t jobNo = std::stoi(tokens.at(1), nullptr, 10);
-            auto it = std::find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<1>(job) == jobNo;});
+            int jobNo = std::stoi(tokens.at(1), nullptr, 10);
+            auto it = std::find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<0>(job) == jobNo;});
             if (it != jobs.end()) {
-                printf("found job: %u suspending\n", jobNo);
-                kill(jobNo, SIGSTOP);
+                pid_t sus_pid = std::get<1>(*it);
+                printf("found job: %u suspending\n", sus_pid);
+                kill(sus_pid, SIGSTOP);
             } else {
                 printf("ERROR: failed to find job: %u  not suspending\n", jobNo);
             }
         } else if (tokens.at(0) == "resume") {
-            pid_t jobNo = std::stoi(tokens.at(1), nullptr, 10);
-            auto it = std::find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<1>(job) == jobNo;});
+            int jobNo = std::stoi(tokens.at(1), nullptr, 10);
+            auto it = std::find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<0>(job) == jobNo;});
             if (it != jobs.end()) {
-                printf("found job: %u resuming\n", jobNo);
-                kill(jobNo, SIGCONT);
+                pid_t res_pid = std::get<1>(*it);
+                printf("found job: %u resuming\n", res_pid);
+                kill(res_pid, SIGCONT);
             } else {
                 printf("ERROR: failed to find job: %u  not resuming\n", jobNo);
             }
         } else if (tokens.at(0) == "terminate") {
-            pid_t jobNo = std::stoi(tokens.at(1), nullptr, 10);
-            auto it = std::find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<1>(job) == jobNo;});
+            int jobNo = std::stoi(tokens.at(1), nullptr, 10);
+            auto it = std::find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<0>(job) == jobNo;});
             if (it != jobs.end()) {
-                printf("found job: %u terminating\n", jobNo);
+                pid_t term_pid = std::get<1>(*it);
+                printf("found job: %u terminating\n", term_pid);
                 jobs.erase(it);
-                kill(jobNo, SIGKILL);
+                kill(term_pid, SIGKILL);
                 job_idx--;
             } else {
                 printf("ERROR: failed to find job: %u  not terminating\n", jobNo);
