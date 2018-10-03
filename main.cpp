@@ -220,10 +220,11 @@ int main() {
     jobList jobs;
     pid_t pid = getpid();
 
+    // get the start cpu times for a1jobs
     tms startCPU{};
     static clock_t startTime = times(&startCPU);
 
-    // main command event loop
+    // main a1jobs command event loop
     for (;;) {
         std::string cmd;
 
@@ -258,9 +259,10 @@ int main() {
             invalidCommand(tokens);
         }
     }
+
+    // get the ending cpu times on the termination of a1jobs and compair to the start
     tms endCPU{};
     static clock_t endTime = times(&endCPU);
-
     printf("real:        %5li sec.\n", (long int)(endTime - startTime)/sysconf(_SC_CLK_TCK));
     printf("user:        %5li sec.\n", (long int)(endCPU.tms_utime - startCPU.tms_utime)/sysconf(_SC_CLK_TCK));
     printf("sys:         %5li sec.\n", (long int)(endCPU.tms_stime - startCPU.tms_stime)/sysconf(_SC_CLK_TCK));
