@@ -44,6 +44,33 @@ pid_t getA1jobsDetails() {
 
 
 /**
+ * Terminate the a1jobs process.
+ *
+ * Before termination however terminate the head process to every head process still in job_list.
+ *
+ * @param jobs the list of head processes to terminate before exiting a1jobs.
+ */
+void exitA1jobs(const job_list &jobs) {
+    for(job job: jobs){
+        printf("terminating job: %u\n", std::get<1>(job));
+        kill(std::get<1>(job), SIGKILL);
+    }
+    printf("exiting a1jobs\n");
+    exit(0);
+}
+
+
+/**
+ * Terminate the a1jobs process without terminating the head processes.
+ */
+void quitA1jobs() {
+    printf("WARNING: Exiting a1jobs without terminating head processes\n");
+    printf("exiting a1jobs\n");
+    exit(0);
+}
+
+
+/**
  * Print a error message when a unsupported command is given to a1jobs.
  *
  * @param tokens
@@ -55,6 +82,7 @@ void invalidCommand(std::vector<std::string> &tokens) {
     cmd_str << tokens.back();
     printf("ERROR: Invalid command: %s\n", cmd_str.str().c_str());
 }
+
 
 
 /**
@@ -176,20 +204,13 @@ int main() {
                 printf("ERROR: failed to find job: %u  not terminating\n", jobNo);
             }
         } else if (tokens.at(0) == "exit") {
-            for(job job: jobs){
-                printf("terminating job: %u\n", std::get<1>(job));
-                kill(std::get<1>(job), SIGKILL);
-            }
-            printf("exiting a1jobs\n");
+            exitA1jobs(jobs);
             break;
         } else if (tokens.at(0) == "quit") {
-            printf("WARNING: Exiting a1jobs without terminating head processes\n");
-            printf("exiting a1jobs\n");
-            break;
+            quitA1jobs();
         } else {
             invalidCommand(tokens);
         }
     }
     return 0;
 }
-
