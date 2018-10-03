@@ -17,7 +17,7 @@
 #include <tuple>
 #include <algorithm>
 
-static const int MAXJOBS = 32;
+static const int MAX_JOBS = 32;
 
 
 typedef std::tuple<uint, pid_t, std::string> job;
@@ -49,11 +49,11 @@ void listJobs(const jobList &jobs) {
  */
 void runJob(jobList &jobs, std::vector<std::string> &tokens) {
     if (tokens.size()==1){
-        printf("ERROR: Missing arguments\n");
+        printf("ERROR: missing arguments\n");
     }else if (tokens.size()>5){
-        printf("ERROR: Too many args for run\n");
-    } else if (jobs.size() >= MAXJOBS) {
-        printf("ERROR: Too many jobs already initiated\n");
+        printf("ERROR: too many args for run\n");
+    } else if (jobs.size() >= MAX_JOBS) {
+        printf("ERROR: too many jobs already initiated\n");
     } else {
         errno = 0;
 
@@ -81,7 +81,7 @@ void runJob(jobList &jobs, std::vector<std::string> &tokens) {
             // TODO: catch if failing to execute
         }
         if (errno) {
-            printf("ERROR: Running command\n");
+            printf("ERROR: running command\n");
             errno = 0;
         } else {
             // concat the cmd vector into a single string
@@ -175,7 +175,7 @@ void exitA1jobs(const jobList &jobs) {
  * Terminate the a1jobs process without terminating the head processes.
  */
 void quitA1jobs() {
-    printf("WARNING: Exiting a1jobs without terminating head processes\n");
+    printf("WARNING: exiting a1jobs without terminating head processes\n");
     printf("exiting a1jobs\n");
 }
 
@@ -254,11 +254,11 @@ int main() {
     tms endCPU{};
     static clock_t endTime = times(&endCPU);
 
-    printf("real:        %li\n", (long int)(endTime - startTime)/sysconf(_SC_CLK_TCK));
-    printf("user:        %li\n", (long int)(endCPU.tms_utime - startCPU.tms_utime)/sysconf(_SC_CLK_TCK));
-    printf("sys:         %li\n", (long int)(endCPU.tms_stime - startCPU.tms_stime)/sysconf(_SC_CLK_TCK));
-    printf("child user:  %li\n", (long int)(endCPU.tms_cutime - startCPU.tms_cutime)/sysconf(_SC_CLK_TCK));
-    printf("child sys:   %li\n", (long int)(endCPU.tms_cstime - startCPU.tms_cstime)/sysconf(_SC_CLK_TCK));
+    printf("real:        %li sec.\n", (long int)(endTime - startTime)/sysconf(_SC_CLK_TCK));
+    printf("user:        %li sec.\n", (long int)(endCPU.tms_utime - startCPU.tms_utime)/sysconf(_SC_CLK_TCK));
+    printf("sys:         %li sec.\n", (long int)(endCPU.tms_stime - startCPU.tms_stime)/sysconf(_SC_CLK_TCK));
+    printf("child user:  %li sec.\n", (long int)(endCPU.tms_cutime - startCPU.tms_cutime)/sysconf(_SC_CLK_TCK));
+    printf("child sys:   %li sec.\n", (long int)(endCPU.tms_cstime - startCPU.tms_cstime)/sysconf(_SC_CLK_TCK));
 
     return 0;
 }
