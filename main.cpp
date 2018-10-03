@@ -30,6 +30,7 @@ typedef std::vector<job> job_list;
  * @return {@code pid_t} the pid of the a1jobs process.
  */
 pid_t getA1jobsDetails() {
+    // TODO: implemented wrong redo
     tms tms{};
     times(&tms);
     pid_t pid = getpid();
@@ -48,11 +49,29 @@ pid_t getA1jobsDetails() {
  *
  * If the list of head processes is empty nothing is printed.
  *
- * @param jobs
+ * @param jobs the list of head processes.
  */
 void listJobs(const job_list &jobs) {
     for(job job: jobs){
         printf("%u: (pid=%6u, cmd= %s)\n", std::get<0>(job), std::get<1>(job), std::get<2>(job).c_str());
+    }
+}
+
+
+/**
+ * Send the SIGSTOP signal to a Head process. Thus, suspending the head process.
+ *
+ * @param jobs the list of head processes.
+ * @param jobNo the head process number to stop.
+ */
+void suspendJob(job_list &jobs, int jobNo) {
+    auto it = find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<0>(job) == jobNo;});
+    if (it != jobs.end()) {
+        pid_t sus_pid = std::get<1>(*it);
+        printf("found job: %u suspending\n", sus_pid);
+        kill(sus_pid, SIGSTOP);
+    } else {
+        printf("ERROR: failed to find job: %u  not suspending\n", jobNo);
     }
 }
 
@@ -185,14 +204,7 @@ int main() {
             }
         } else if (tokens.at(0) == "suspend") {
             int jobNo = std::stoi(tokens.at(1), nullptr, 10);
-            auto it = std::find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<0>(job) == jobNo;});
-            if (it != jobs.end()) {
-                pid_t sus_pid = std::get<1>(*it);
-                printf("found job: %u suspending\n", sus_pid);
-                kill(sus_pid, SIGSTOP);
-            } else {
-                printf("ERROR: failed to find job: %u  not suspending\n", jobNo);
-            }
+            suspendJob(jobs, jobNo);
         } else if (tokens.at(0) == "resume") {
             int jobNo = std::stoi(tokens.at(1), nullptr, 10);
             auto it = std::find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<0>(job) == jobNo;});
