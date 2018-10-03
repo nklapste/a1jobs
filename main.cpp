@@ -95,6 +95,29 @@ void resumeJob(job_list &jobs, int jobNo) {
 
 
 /**
+ * Sent the SIGKILL signal to a Head process. Thus terminating the head process.
+ *
+ * @param jobs the list of head processes.
+ * @param job_idx number of jobs in the list of head processes.
+ * @param jobNo the head process number to stop.
+ * @return
+ */
+uint terminateJob(job_list &jobs, uint job_idx, int jobNo) {
+    auto it = find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<0>(job) == jobNo;});
+    if (it != jobs.end()) {
+        pid_t term_pid = std::get<1>(*it);
+        printf("found job: %u terminating\n", term_pid);
+        jobs.erase(it);
+        kill(term_pid, SIGKILL);
+        job_idx--;
+    } else {
+        printf("ERROR: failed to find job: %u  not terminating\n", jobNo);
+    }
+    return job_idx;
+}
+
+
+/**
  * Terminate the a1jobs process.
  *
  * Before termination however terminate the head process to every head process still in job_list.
@@ -228,16 +251,7 @@ int main() {
             resumeJob(jobs, jobNo);
         } else if (tokens.at(0) == "terminate") {
             int jobNo = std::stoi(tokens.at(1), nullptr, 10);
-            auto it = std::find_if(jobs.begin(), jobs.end(), [&jobNo](const job& job) {return std::get<0>(job) == jobNo;});
-            if (it != jobs.end()) {
-                pid_t term_pid = std::get<1>(*it);
-                printf("found job: %u terminating\n", term_pid);
-                jobs.erase(it);
-                kill(term_pid, SIGKILL);
-                job_idx--;
-            } else {
-                printf("ERROR: failed to find job: %u  not terminating\n", jobNo);
-            }
+            job_idx = terminateJob(jobs, job_idx, jobNo);
         } else if (tokens.at(0) == "exit") {
             exitA1jobs(jobs);
             break;
@@ -249,3 +263,4 @@ int main() {
     }
     return 0;
 }
+
