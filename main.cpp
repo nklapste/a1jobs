@@ -44,6 +44,20 @@ pid_t getA1jobsDetails() {
 
 
 /**
+ * Print out the job_list of head processes.
+ *
+ * If the list of head processes is empty nothing is printed.
+ *
+ * @param jobs
+ */
+void listJobs(const job_list &jobs) {
+    for(job job: jobs){
+        printf("%u: (pid=%6u, cmd= %s)\n", std::get<0>(job), std::get<1>(job), std::get<2>(job).c_str());
+    }
+}
+
+
+/**
  * Terminate the a1jobs process.
  *
  * Before termination however terminate the head process to every head process still in job_list.
@@ -118,9 +132,7 @@ int main() {
         if (tokens.empty()) {
             printf("ERROR: Missing command\n");
         } else if (tokens.at(0) == "list") {
-            for(job job: jobs){
-                printf("%u: (pid=%6u, cmd= %s)\n", std::get<0>(job), std::get<1>(job), std::get<2>(job).c_str());
-            }
+            listJobs(jobs);
         } else if (tokens.at(0) == "run") {
             if (job_idx < MAXJOBS) {
                 errno = 0;
