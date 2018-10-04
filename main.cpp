@@ -99,7 +99,7 @@ void runJob(jobList &jobs, std::vector<std::string> &tokens) {
             exit(0);
         }
         if (errno) {
-            printf("ERROR: running command\n");
+            printf("ERROR: failed running command\n");
             errno = 0;
         } else {
             // concat the cmd vector into a single string
@@ -202,10 +202,10 @@ void quitA1jobs() {
  */
 void invalidCommand(std::vector<std::string> &tokens) {
     std::ostringstream cmdStr;
-    copy(tokens.begin() + 1, tokens.end() - 1,
+    copy(tokens.begin(), tokens.end() - 1,
          std::ostream_iterator<std::__cxx11::string>(cmdStr, " "));
     cmdStr << tokens.back();
-    printf("ERROR: Invalid command: %s\n", cmdStr.str().c_str());
+    printf("ERROR: Invalid command: '%s'\n", cmdStr.str().c_str());
 }
 
 
