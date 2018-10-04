@@ -70,7 +70,10 @@ void runJob(jobList &jobs, std::vector<std::string> &tokens) {
         errno = 0;
 
         pid_t childPID = fork();
-        if (childPID == 0) {
+        if (childPID == -1){
+            printf("ERROR: failed to fork\n");
+            errno = 1;
+        } else if (childPID == 0) {
             switch (tokens.size()) {
                 case 2:
                     execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), (char *) nullptr);
@@ -90,7 +93,6 @@ void runJob(jobList &jobs, std::vector<std::string> &tokens) {
                     break;
             }
             exit(0);
-            // TODO: catch if failing to execute
         }
         if (errno) {
             printf("ERROR: running command\n");
