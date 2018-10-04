@@ -159,7 +159,6 @@ void terminateJob(jobList &jobs, uint jobNo) {
         pid_t jobPID = std::get<0>(jobs.at(jobNo));
         printf("found job: %u terminating\n", jobPID);
         kill(jobPID, SIGKILL);
-        jobs.erase(jobs.begin() + jobNo);
     } else {
         printf("ERROR: failed to find job: %u  not terminating\n", jobNo);
     }
