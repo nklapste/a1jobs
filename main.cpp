@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include <tuple>
 #include <algorithm>
+#include <fcntl.h>
 
 static const int MAX_JOBS = 32;
 
@@ -74,6 +75,8 @@ void runJob(jobList &jobs, std::vector<std::string> &tokens) {
             printf("ERROR: failed to fork\n");
             errno = 1;
         } else if (childPID == 0) {
+            int fd = open("/dev/null",O_WRONLY | O_CREAT, 0666);   // open the file /dev/null
+            dup2(fd, 1);
             switch (tokens.size()) {
                 case 2:
                     execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), (char *) nullptr);
@@ -92,6 +95,7 @@ void runJob(jobList &jobs, std::vector<std::string> &tokens) {
                 default:
                     break;
             }
+            close(fd);
             exit(0);
         }
         if (errno) {
