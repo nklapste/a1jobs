@@ -284,11 +284,11 @@ int main() {
     // get the ending cpu times on the termination of a1jobs and compair to the start
     tms endCPU{};
     static clock_t endTime = times(&endCPU);
-    printf("real:        %.2f sec.\n", ( float)(endTime - startTime)/sysconf(_SC_CLK_TCK));
-    printf("user:        %.2f sec.\n", ( float)(endCPU.tms_utime - startCPU.tms_utime)/sysconf(_SC_CLK_TCK));
-    printf("sys:         %.2f sec.\n", ( float)(endCPU.tms_stime - startCPU.tms_stime)/sysconf(_SC_CLK_TCK));
-    printf("child user:  %.2f sec.\n", ( float)(endCPU.tms_cutime - startCPU.tms_cutime)/sysconf(_SC_CLK_TCK));
-    printf("child sys:   %.2f sec.\n", ( float)(endCPU.tms_cstime - startCPU.tms_cstime)/sysconf(_SC_CLK_TCK));
+    printf("real:        %.2f sec.\n", (float)(endTime - startTime)/sysconf(_SC_CLK_TCK));
+    printf("user:        %.2f sec.\n", (float)(endCPU.tms_utime - startCPU.tms_utime)/sysconf(_SC_CLK_TCK));
+    printf("sys:         %.2f sec.\n", (float)(endCPU.tms_stime - startCPU.tms_stime)/sysconf(_SC_CLK_TCK));
+    printf("child user:  %.2f sec.\n", (float)(endCPU.tms_cutime - startCPU.tms_cutime)/sysconf(_SC_CLK_TCK));
+    printf("child sys:   %.2f sec.\n", (float)(endCPU.tms_cstime - startCPU.tms_cstime)/sysconf(_SC_CLK_TCK));
 
     return 0;
 }
