@@ -63,7 +63,7 @@ void listJobs(const jobList &jobs) {
 void runJob(jobList &jobs, std::vector<std::string> &tokens) {
     if (tokens.size()==1){
         printf("ERROR: missing arguments\n");
-    }else if (tokens.size()>5){
+    }else if (tokens.size()>6){
         printf("ERROR: too many args for run\n");
     } else if (jobs.size() >= MAX_JOBS) {
         printf("ERROR: too many jobs already initiated\n");
@@ -91,6 +91,10 @@ void runJob(jobList &jobs, std::vector<std::string> &tokens) {
                 case 5:
                     execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(),
                            tokens.at(3).c_str(), tokens.at(4).c_str(), (char *) nullptr);
+                    break;
+                case 6:
+                    execlp(tokens.at(1).c_str(), tokens.at(1).c_str(), tokens.at(2).c_str(),
+                           tokens.at(3).c_str(), tokens.at(4).c_str(), tokens.at(5).c_str(), (char *) nullptr);
                     break;
                 default:
                     break;
