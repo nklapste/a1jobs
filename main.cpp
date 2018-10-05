@@ -162,11 +162,17 @@ void resumeJob(jobList &jobs, uint jobNo) {
  * @param jobNo the head process number to stop.
  * @return
  */
-void terminateJob(jobList &jobs, uint jobNo) {
+void terminateJob(jobList &jobs, uint jobNo, jobList &termJobs) {
     if (jobNo < jobs.size()){
-        pid_t jobPID = std::get<0>(jobs.at(jobNo));
-        printf("found job: %u terminating\n", jobPID);
-        kill(jobPID, SIGKILL);
+        if(std::find(termJobs.begin(), termJobs.end(), jobs.at(jobNo)) != termJobs.end()) {
+            /* v contains x */
+        } else {
+            /* v does not contain x */
+            pid_t jobPID = std::get<0>(jobs.at(jobNo));
+            printf("found job: %u terminating\n", jobPID);
+            kill(jobPID, SIGKILL);
+            termJobs.push_back(jobs.at(jobNo));
+        }
     } else {
         printf("ERROR: failed to find job: %u  not terminating\n", jobNo);
     }
@@ -180,11 +186,16 @@ void terminateJob(jobList &jobs, uint jobNo) {
  *
  * @param jobs the list of head processes to terminate before exiting a1jobs.
  */
-void exitA1jobs(const jobList &jobs) {
+void exitA1jobs(const jobList &jobs, jobList &termJobs) {
     for(job job: jobs){
-        pid_t jobPID = std::get<0>(job);
-        printf("terminating job: %u\n", jobPID);
-        kill(jobPID, SIGKILL);
+        if(std::find(termJobs.begin(), termJobs.end(), job) != termJobs.end()) {
+            /* v contains x */
+        } else {
+            /* v does not contain x */
+            pid_t jobPID = std::get<0>(job);
+            printf("terminating job: %u\n", jobPID);
+            kill(jobPID, SIGKILL);
+        }
     }
     printf("exiting a1jobs\n");
 }
@@ -227,6 +238,7 @@ void set_cpu_safety() {
 int main() {
     set_cpu_safety();
     jobList jobs;
+    jobList termJobs;
     pid_t pid = getpid();
 
     // get the start cpu times for a1jobs
@@ -257,9 +269,9 @@ int main() {
         } else if (tokens.at(0) == "resume") {
             resumeJob(jobs, getJobNo(tokens));
         } else if (tokens.at(0) == "terminate") {
-            terminateJob(jobs, getJobNo(tokens));
+            terminateJob(jobs, getJobNo(tokens), termJobs);
         } else if (tokens.at(0) == "exit") {
-            exitA1jobs(jobs);
+            exitA1jobs(jobs, termJobs);
             break;
         } else if (tokens.at(0) == "quit") {
             quitA1jobs();
