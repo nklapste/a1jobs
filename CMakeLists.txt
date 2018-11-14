@@ -3,4 +3,4 @@ project(a1jobs)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(a1jobs main.cpp)
+add_executable(a1jobs a1jobs.cpp)
